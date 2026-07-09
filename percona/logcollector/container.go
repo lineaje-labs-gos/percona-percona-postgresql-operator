@@ -1,0 +1,199 @@
+package logcollector
+
+import (
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+
+	"github.com/percona/percona-postgresql-operator/v2/internal/naming"
+	"github.com/percona/percona-postgresql-operator/v2/internal/pgbackrest"
+	"github.com/percona/percona-postgresql-operator/v2/internal/postgres"
+	"github.com/percona/percona-postgresql-operator/v2/percona/logcollector/logrotate"
+	v2 "github.com/percona/percona-postgresql-operator/v2/pkg/apis/pgv2.percona.com/v2"
+)
+
+const (
+	containerName                    = "logs"
+	configMapNameSuffix              = "log-collector-config"
+	volumeName                       = "log-collector-volume"
+	fluentBitCustomConfigurationFile = "fluentbit_custom.conf"
+	postgresLogPath                  = "/pgdata/logs/postgres"
+	repoHostLogGlob                  = "/pgbackrest/*/log"
+	customConfigMountPath            = "/opt/percona/logcollector/fluentbit/custom"
+	entrypoint                       = "/opt/percona/logcollector/entrypoint.sh"
+)
+
+func configMapName(prefix string) string {
+	if prefix == "" {
+		return configMapNameSuffix
+	}
+	return prefix + "-" + configMapNameSuffix
+}
+
+// volumes returns the pod-level volumes required by the log collector
+// sidecars for a PostgreSQL instance pod.
+func volumes(cr *v2.PerconaPGCluster) []corev1.Volume {
+	if !cr.LogCollectorEnabled() {
+		return nil
+	}
+
+	var vols []corev1.Volume
+
+	if cr.Spec.LogCollector.Configuration != "" {
+		vols = append(vols, corev1.Volume{
+			Name: volumeName,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: configMapName(cr.Name),
+					},
+				},
+			},
+		})
+	}
+
+	if v := logrotateVolume(cr); v != nil {
+		vols = append(vols, *v)
+	}
+
+	return vols
+}
+
+func logrotateVolume(cr *v2.PerconaPGCluster) *corev1.Volume {
+	lr := cr.Spec.LogCollector.LogRotate
+	if lr == nil || (lr.Configuration == "" && lr.ExtraConfig.Name == "") {
+		return nil
+	}
+
+	var sources []corev1.VolumeProjection
+	if lr.Configuration != "" {
+		sources = append(sources, corev1.VolumeProjection{
+			ConfigMap: &corev1.ConfigMapProjection{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: logrotate.ConfigMapName(cr.Name),
+				},
+			},
+		})
+	}
+	if lr.ExtraConfig.Name != "" {
+		sources = append(sources, corev1.VolumeProjection{
+			ConfigMap: &corev1.ConfigMapProjection{
+				LocalObjectReference: lr.ExtraConfig,
+			},
+		})
+	}
+
+	return &corev1.Volume{
+		Name: logrotate.VolumeName,
+		VolumeSource: corev1.VolumeSource{
+			Projected: &corev1.ProjectedVolumeSource{Sources: sources},
+		},
+	}
+}
+
+// instanceContainers returns the log collector sidecars for a PostgreSQL instance pod.
+func instanceContainers(cr *v2.PerconaPGCluster) ([]corev1.Container, error) {
+	return containers(cr, postgres.DataVolumeMount(), instanceEnv())
+}
+
+func repoHostContainers(cr *v2.PerconaPGCluster) ([]corev1.Container, error) {
+	return containers(cr, pgbackrest.RepoVolumeMount(), repoHostEnv())
+}
+
+func containers(cr *v2.PerconaPGCluster, dataMount corev1.VolumeMount, env []corev1.EnvVar) ([]corev1.Container, error) {
+	if !cr.LogCollectorEnabled() {
+		return nil, nil
+	}
+
+	logs, err := logContainer(cr, dataMount, env)
+	if err != nil {
+		return nil, err
+	}
+
+	rotate, err := logrotate.Container(cr, dataMount)
+	if err != nil {
+		return nil, err
+	}
+
+	return []corev1.Container{*logs, *rotate}, nil
+}
+
+func logContainer(cr *v2.PerconaPGCluster, dataMount corev1.VolumeMount, env []corev1.EnvVar) (*corev1.Container, error) {
+	if cr.Spec.LogCollector == nil {
+		return nil, errors.New("logcollector can't be nil")
+	}
+
+	env = append(env, cr.Spec.LogCollector.Env...)
+
+	container := corev1.Container{
+		Name:            containerName,
+		Image:           cr.Spec.LogCollector.Image,
+		ImagePullPolicy: cr.Spec.LogCollector.ImagePullPolicy,
+		SecurityContext: cr.Spec.LogCollector.ContainerSecurityContext,
+		Resources:       cr.Spec.LogCollector.Resources,
+		Command:         []string{entrypoint},
+		Args:            []string{"fluent-bit"},
+		Env:             env,
+		EnvFrom:         append([]corev1.EnvFromSource(nil), cr.Spec.LogCollector.EnvFrom...),
+		VolumeMounts: []corev1.VolumeMount{
+			{Name: dataMount.Name, MountPath: dataMount.MountPath},
+		},
+	}
+
+	if len(container.EnvFrom) == 0 {
+		container.EnvFrom = nil
+	}
+
+	if cr.Spec.LogCollector.Configuration != "" {
+		container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
+			Name:      volumeName,
+			MountPath: customConfigMountPath,
+		})
+	}
+
+	return &container, nil
+}
+
+func instanceEnv() []corev1.EnvVar {
+	return append(
+		[]corev1.EnvVar{
+			{Name: "PG_LOG_DIR", Value: postgresLogPath},
+			{Name: "PGBACKREST_LOG_DIR", Value: naming.PGBackRestPGDataLogPath},
+		},
+		podEnv()...,
+	)
+}
+
+func repoHostEnv() []corev1.EnvVar {
+	return append(
+		[]corev1.EnvVar{
+			// PG_LOG_DIR resolves to a path that isn't mounted on the repo
+			// host; fluent-bit's tail treats it as a no-op. Set explicitly so
+			// the shared fluent-bit config can reference ${PG_LOG_DIR} on
+			// every pod type.
+			{Name: "PG_LOG_DIR", Value: postgresLogPath},
+			{Name: "PGBACKREST_LOG_DIR", Value: repoHostLogGlob},
+		},
+		podEnv()...,
+	)
+}
+
+func podEnv() []corev1.EnvVar {
+	return []corev1.EnvVar{
+		{
+			Name: "POD_NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.namespace",
+				},
+			},
+		},
+		{
+			Name: "POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
+	}
+}
