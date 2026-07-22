@@ -870,7 +870,7 @@ func (r *PGClusterReconciler) setCRVersion(ctx context.Context, cr *v2.PerconaPG
 	}
 
 	orig := cr.DeepCopy()
-	cr.Spec.CRVersion = version.Version()
+	cr.Spec.CRVersion = version.ComparableVersion()
 
 	if err := r.Client.Patch(ctx, cr, client.MergeFrom(orig)); err != nil {
 		return errors.Wrap(err, "patch CR")

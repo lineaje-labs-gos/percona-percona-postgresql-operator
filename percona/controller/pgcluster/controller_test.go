@@ -2753,7 +2753,7 @@ var _ = Describe("CR Version Management", Ordered, func() {
 				// Fetch the CR again to verify the patch was applied in the cluster
 				updated := &v2.PerconaPGCluster{}
 				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace}, updated)).Should(Succeed())
-				Expect(updated.Spec.CRVersion).To(Equal(version.Version()))
+				Expect(updated.Spec.CRVersion).To(Equal(version.ComparableVersion()))
 			})
 		})
 
