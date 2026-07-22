@@ -17,6 +17,8 @@ package main
 
 import (
 	"context"
+	"flag"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -34,6 +36,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
+
+	"github.com/percona/percona-postgresql-operator/v2/percona/version"
 )
 
 type KubeAPI struct {
@@ -69,6 +73,14 @@ type config struct {
 }
 
 func main() {
+	showVersion := flag.Bool("version", false, "Print version and exit")
+	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("pgbackrest version %s\n", version.Version())
+		return
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	log.Info("crunchy-pgbackrest starts")

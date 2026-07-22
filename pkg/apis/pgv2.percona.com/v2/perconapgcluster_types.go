@@ -177,7 +177,7 @@ type PerconaPGClusterSpec struct {
 
 func (cr *PerconaPGCluster) Default() {
 	if len(cr.Spec.CRVersion) == 0 {
-		cr.Spec.CRVersion = version.Version()
+		cr.Spec.CRVersion = version.ComparableVersion()
 	}
 
 	for i := range cr.Spec.InstanceSets {
