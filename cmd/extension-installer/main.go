@@ -2,17 +2,19 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"path"
 
 	"github.com/percona/percona-postgresql-operator/v2/percona/extensions"
+	"github.com/percona/percona-postgresql-operator/v2/percona/version"
 )
 
 func main() {
 	var storageType, endpoint, region, bucket, key, extensionPath string
-	var install, uninstall, forcePathStyle, disableSSL bool
+	var install, uninstall, forcePathStyle, disableSSL, showVersion bool
 
 	flag.StringVar(&storageType, "type", "", "Storage type")
 	flag.StringVar(&endpoint, "endpoint", "", "Storage endpoint")
@@ -25,7 +27,13 @@ func main() {
 	flag.BoolVar(&uninstall, "uninstall", false, "Uninstall extension")
 	flag.BoolVar(&forcePathStyle, "force-path-style", false, "Force path style")
 	flag.BoolVar(&disableSSL, "disable-ssl", false, "Disable SSL")
+	flag.BoolVar(&showVersion, "version", false, "Print version and exit")
 	flag.Parse()
+
+	if showVersion {
+		fmt.Printf("extension-installer version %s\n", version.Version())
+		return
+	}
 
 	if (install && uninstall) || (!install && !uninstall) {
 		log.Fatalf("ERROR: set either -install or -uninstall")
