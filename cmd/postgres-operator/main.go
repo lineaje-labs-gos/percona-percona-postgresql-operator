@@ -48,7 +48,7 @@ import (
 	"github.com/percona/percona-postgresql-operator/v2/percona/k8s"
 	perconaRuntime "github.com/percona/percona-postgresql-operator/v2/percona/runtime"
 	"github.com/percona/percona-postgresql-operator/v2/percona/utils/registry"
-	pgoversion "github.com/percona/percona-postgresql-operator/v2/percona/version"
+	"github.com/percona/percona-postgresql-operator/v2/percona/version"
 	v2 "github.com/percona/percona-postgresql-operator/v2/pkg/apis/pgv2.percona.com/v2"
 	"github.com/percona/percona-postgresql-operator/v2/pkg/apis/upstream.pgv2.percona.com/v1beta1"
 )
@@ -72,7 +72,7 @@ func main() {
 	flag.Parse()
 
 	if *showVersion {
-		fmt.Printf("postgres-operator version %s\n", pgoversion.Version())
+		fmt.Printf("postgres-operator version %s\n", version.Version())
 		return
 	}
 
