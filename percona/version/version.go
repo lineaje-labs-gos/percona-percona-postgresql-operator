@@ -28,6 +28,19 @@ func Version() string {
 	return strings.TrimSpace(version)
 }
 
+// ComparableVersion returns Version with any build suffix (e.g. "-lineaje-01")
+// stripped, so it can be safely passed to semver comparisons such as
+// CompareVersion. Semver treats a "-suffix" as a pre-release, which sorts
+// lower than the plain release, so passing Version() directly there would
+// make current-version clusters compare as older than they are.
+func ComparableVersion() string {
+	v := Version()
+	if idx := strings.Index(v, "-"); idx != -1 {
+		return v[:idx]
+	}
+	return v
+}
+
 const ProductName = "pg-operator"
 
 type Meta struct {

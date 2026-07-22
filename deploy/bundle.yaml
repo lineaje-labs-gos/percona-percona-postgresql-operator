@@ -297,7 +297,7 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.20.0
   labels:
-    pgv2.percona.com/version: v3.0.0
+    pgv2.percona.com/version: v3.0.0-lineaje-01
   name: perconapgbackups.pgv2.percona.com
 spec:
   group: pgv2.percona.com
@@ -995,7 +995,7 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.20.0
   labels:
-    pgv2.percona.com/version: v3.0.0
+    pgv2.percona.com/version: v3.0.0-lineaje-01
   name: perconapgclusters.pgv2.percona.com
 spec:
   group: pgv2.percona.com
@@ -30129,7 +30129,7 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.20.0
   labels:
-    pgv2.percona.com/version: v3.0.0
+    pgv2.percona.com/version: v3.0.0-lineaje-01
   name: perconapgrestores.pgv2.percona.com
 spec:
   group: pgv2.percona.com
@@ -30451,7 +30451,7 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.20.0
   labels:
-    pgv2.percona.com/version: v3.0.0
+    pgv2.percona.com/version: v3.0.0-lineaje-01
   name: perconapgupgrades.pgv2.percona.com
 spec:
   group: pgv2.percona.com
