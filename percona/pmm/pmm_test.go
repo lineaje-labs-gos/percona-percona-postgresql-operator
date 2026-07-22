@@ -28,7 +28,7 @@ func TestContainer(t *testing.T) {
 
 	pgc := &v2.PerconaPGCluster{
 		Spec: v2.PerconaPGClusterSpec{
-			CRVersion: version.Version(),
+			CRVersion: version.ComparableVersion(),
 			PMM:       pmmSpec,
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -155,7 +155,7 @@ func TestSidecarContainerV2(t *testing.T) {
 
 	pgc := &v2.PerconaPGCluster{
 		Spec: v2.PerconaPGClusterSpec{
-			CRVersion: version.Version(),
+			CRVersion: version.ComparableVersion(),
 			PMM:       pmmSpec,
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -268,7 +268,7 @@ func TestSidecarContainerV3(t *testing.T) {
 
 	pgc := &v2.PerconaPGCluster{
 		Spec: v2.PerconaPGClusterSpec{
-			CRVersion: version.Version(),
+			CRVersion: version.ComparableVersion(),
 			PMM:       pmmSpec,
 		},
 		ObjectMeta: metav1.ObjectMeta{

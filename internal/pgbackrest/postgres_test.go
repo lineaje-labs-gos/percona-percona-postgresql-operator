@@ -24,7 +24,7 @@ func TestPostgreSQLParameters(t *testing.T) {
 		if cluster.Labels == nil {
 			cluster.Labels = make(map[string]string)
 		}
-		cluster.Labels["pgv2.percona.com/version"] = version.Version()
+		cluster.Labels["pgv2.percona.com/version"] = version.ComparableVersion()
 
 		PostgreSQL(cluster, parameters, true)
 		assert.DeepEqual(t, parameters.Mandatory.AsMap(), map[string]string{
