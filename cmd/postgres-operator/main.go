@@ -6,6 +6,8 @@ package main
 
 import (
 	"context"
+	"flag"
+	"fmt"
 	"os"
 	goruntime "runtime"
 	"strconv"
@@ -47,6 +49,7 @@ import (
 	"github.com/percona/percona-postgresql-operator/v2/percona/k8s"
 	perconaRuntime "github.com/percona/percona-postgresql-operator/v2/percona/runtime"
 	"github.com/percona/percona-postgresql-operator/v2/percona/utils/registry"
+	"github.com/percona/percona-postgresql-operator/v2/percona/version"
 	v2 "github.com/percona/percona-postgresql-operator/v2/pkg/apis/pgv2.percona.com/v2"
 	"github.com/percona/percona-postgresql-operator/v2/pkg/apis/postgres-operator.crunchydata.com/v1beta1"
 )
@@ -66,6 +69,14 @@ func assertNoError(err error) {
 }
 
 func main() {
+	showVersion := flag.Bool("version", false, "Print version and exit")
+	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("postgres-operator version %s\n", version.Version())
+		return
+	}
+
 	otelFlush, err := initOpenTelemetry()
 	assertNoError(err)
 	defer otelFlush()

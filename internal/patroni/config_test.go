@@ -96,7 +96,7 @@ watchdog:
 		cluster.Namespace = "some-namespace"
 		cluster.Name = "cluster-name"
 		cluster.Labels = map[string]string{
-			naming.LabelVersion: version.Version(),
+			naming.LabelVersion: version.ComparableVersion(),
 		}
 		cluster.Spec.Metadata = &v1beta1.Metadata{
 			Labels: map[string]string{

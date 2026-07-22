@@ -106,7 +106,7 @@ func InitImage(ctx context.Context, cl client.Reader, cluster *v1beta1.PostgresC
 		return imageName, nil
 	}
 
-	if cluster.CompareVersion(version.Version()) != 0 {
+	if cluster.CompareVersion(version.ComparableVersion()) != 0 {
 		imageName = strings.Split(operatorImage, ":")[0] + ":" + crVersion
 	}
 
